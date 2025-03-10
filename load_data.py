@@ -1,6 +1,6 @@
 import pandas as pd
 from sqlalchemy import create_engine
-from models import SurfSession, get_session, WaveQuality
+from models import SurfSession, get_session, WaveQuality, Board
 from datetime import datetime
 import os
 
@@ -13,6 +13,26 @@ def convert_wave_quality(quality_str):
         'excellent': WaveQuality.EXCELLENT
     }
     return quality_map.get(quality_str.lower(), None) if quality_str else None
+
+def get_board_by_name(db_session, board_name):
+    """Get board by name, handling variations in naming"""
+    if not board_name:
+        return None
+        
+    # Clean up board name
+    board_name = board_name.strip().lower()
+    
+    # Handle common variations
+    if 'zen' in board_name:
+        board_name = 'Zen'
+    elif 'joe' in board_name.lower() or 'log' in board_name.lower():
+        board_name = 'JoeLog'
+    elif 'wave' in board_name.lower() or 'storm' in board_name.lower():
+        board_name = 'Wavestorm'
+    elif 'nps' in board_name.lower() or 'egg' in board_name.lower():
+        board_name = 'NPS Egg'
+    
+    return db_session.query(Board).filter(Board.name.ilike(f"%{board_name}%")).first()
 
 def clean_dataframe(df):
     """Clean and prepare the dataframe"""
@@ -28,6 +48,8 @@ def clean_dataframe(df):
         'Location': 'location',
         'Swell Size (surfline)': 'wave_height',
         'Time in water': 'session_duration',
+        'Waves Caught': 'waves_caught',
+        'Boards': 'board',  # Add board column mapping
         'Notes': 'notes'
     }
     
@@ -42,6 +64,10 @@ def clean_dataframe(df):
     # Convert wave height to numeric, removing any text
     if 'wave_height' in df.columns:
         df['wave_height'] = pd.to_numeric(df['wave_height'].str.extract(r'(\d+(?:\.\d+)?)', expand=False), errors='coerce')
+    
+    # Convert waves caught to numeric
+    if 'waves_caught' in df.columns:
+        df['waves_caught'] = pd.to_numeric(df['waves_caught'], errors='coerce')
     
     # Handle dates - replace invalid dates with None
     if 'date' in df.columns:
@@ -93,6 +119,15 @@ def load_surf_data(file_path):
                         print(f"Skipping row {idx + 1}: No location provided")
                         continue
                     
+                    # Get board if specified
+                    board = None
+                    if 'board' in row and not pd.isna(row['board']):
+                        board = get_board_by_name(db_session, row['board'])
+                        if board:
+                            print(f"Found board: {board.name} for session {idx + 1}")
+                        else:
+                            print(f"Warning: Board not found for session {idx + 1}: {row['board']}")
+                    
                     session = SurfSession(
                         date=row['date'] if row.get('date') else datetime.now(),
                         location=row['location'],
@@ -103,8 +138,10 @@ def load_surf_data(file_path):
                         tide_height=None,   # We don't have this in the Excel file
                         water_temp=None,    # We don't have this in the Excel file
                         session_duration=row.get('session_duration'),
+                        waves_caught=row.get('waves_caught'),
                         notes=row.get('notes'),
-                        rating=None         # We don't have this in the Excel file
+                        rating=None,        # We don't have this in the Excel file
+                        board=board         # Add board relationship
                     )
                     db_session.add(session)
                     successful_imports += 1
@@ -131,6 +168,8 @@ def load_surf_data(file_path):
         print("- Location")
         print("- Swell Size (surfline)")
         print("- Time in water")
+        print("- Waves Caught")
+        print("- Boards")
         print("- Notes")
 
 if __name__ == "__main__":
