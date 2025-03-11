@@ -1,0 +1,36 @@
+
+    <html>
+    <head>
+        <title>Surf Session Analytics</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .summary { margin-bottom: 20px; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+            iframe { width: 100%; height: 500px; border: none; }
+        </style>
+    </head>
+    <body>
+        <h1>Surf Session Analytics Dashboard</h1>
+        
+        <div class="summary">
+            <h2>Summary Statistics</h2>
+            <table>
+                <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Total Sessions</td><td>287</td></tr><tr><td>Unique Locations</td><td>7</td></tr><tr><td>Average Wave Height</td><td>1.4ft</td></tr><tr><td>Average Session Duration</td><td>50min</td></tr><tr><td>Total Waves Caught</td><td>2224</td></tr><tr><td>Average Waves per Session</td><td>7.7</td></tr><tr><td>Most Used Board</td><td>JoeLog</td></tr><tr><td>Favorite Location</td><td>Barneys</td></tr>
+            </table>
+        </div>
+        
+        <div class="grid">
+            <iframe src="surf_locations.html"></iframe>
+            <iframe src="surf_boards.html"></iframe>
+            <iframe src="surf_timeline.html"></iframe>
+            <iframe src="wave_heights.html"></iframe>
+            <iframe src="board_performance.html"></iframe>
+            <iframe src="session_duration.html"></iframe>
+        </div>
+    </body>
+    </html>
+    

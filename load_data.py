@@ -29,18 +29,25 @@ def get_board_by_name(db_session, board_name):
         board_name = 'JoeLog'
     elif 'wave' in board_name.lower() or 'storm' in board_name.lower():
         board_name = 'Wavestorm'
-    elif 'nps' in board_name.lower() or 'egg' in board_name.lower():
-        board_name = 'NPS Egg'
+    elif 'nps' in board_name.lower() or 'nsp' in board_name.lower() or 'egg' in board_name.lower():
+        board_name = 'NSP Egg'
     
-    return db_session.query(Board).filter(Board.name.ilike(f"%{board_name}%")).first()
+    board = db_session.query(Board).filter(Board.name.ilike(f"%{board_name}%")).first()
+    if not board:
+        print(f"DEBUG: Could not find board matching '{board_name}'")
+    return board
 
 def clean_dataframe(df):
     """Clean and prepare the dataframe"""
+    print("\nDEBUG: Starting dataframe cleaning...")
+    print(f"DEBUG: Initial shape: {df.shape}")
+    
     # Remove unnamed columns
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
     
     # Remove rows where all values are NaN
     df = df.dropna(how='all')
+    print(f"DEBUG: Shape after dropping empty rows: {df.shape}")
     
     # Rename columns to match our schema
     column_mapping = {
@@ -49,7 +56,7 @@ def clean_dataframe(df):
         'Swell Size (surfline)': 'wave_height',
         'Time in water': 'session_duration',
         'Waves Caught': 'waves_caught',
-        'Boards': 'board',  # Add board column mapping
+        'Boards': 'board',
         'Notes': 'notes'
     }
     
@@ -63,17 +70,26 @@ def clean_dataframe(df):
     
     # Convert wave height to numeric, removing any text
     if 'wave_height' in df.columns:
-        df['wave_height'] = pd.to_numeric(df['wave_height'].str.extract(r'(\d+(?:\.\d+)?)', expand=False), errors='coerce')
+        print("\nDEBUG: Converting wave heights...")
+        df['wave_height'] = df['wave_height'].apply(lambda x: str(x) if pd.notnull(x) else '')
+        df['wave_height'] = df['wave_height'].str.extract(r'(\d+(?:\.\d+)?)', expand=False)
+        df['wave_height'] = pd.to_numeric(df['wave_height'], errors='coerce')
+        print(f"DEBUG: Unique wave heights after conversion: {df['wave_height'].unique()}")
     
     # Convert waves caught to numeric
     if 'waves_caught' in df.columns:
         df['waves_caught'] = pd.to_numeric(df['waves_caught'], errors='coerce')
     
-    # Handle dates - replace invalid dates with None
+    # Handle dates
     if 'date' in df.columns:
+        print("\nDEBUG: Converting dates...")
         df['date'] = pd.to_datetime(df['date'], errors='coerce')
+        # Fix specific date typo: 2020-09-28 should be 2023-09-28
+        df.loc[df['date'] == '2020-09-28', 'date'] = pd.to_datetime('2023-09-28')
         # Replace NaT with None
         df['date'] = df['date'].where(df['date'].notna(), None)
+        print(f"DEBUG: Date range: {df['date'].min()} to {df['date'].max()}")
+        print(f"DEBUG: Null dates: {df['date'].isnull().sum()}")
     
     return df
 
@@ -115,9 +131,17 @@ def load_surf_data(file_path):
             for idx, row in df.iterrows():
                 try:
                     # Skip rows with no date or location
-                    if pd.isna(row.get('location')):
-                        print(f"Skipping row {idx + 1}: No location provided")
+                    if pd.isna(row.get('date')):
+                        print(f"DEBUG: Skipping row {idx + 1}: No date")
                         continue
+                    if pd.isna(row.get('location')):
+                        print(f"DEBUG: Skipping row {idx + 1}: No location")
+                        continue
+                    
+                    print(f"\nDEBUG: Processing row {idx + 1}")
+                    print(f"DEBUG: Date: {row.get('date')}")
+                    print(f"DEBUG: Location: {row.get('location')}")
+                    print(f"DEBUG: Board: {row.get('board')}")
                     
                     # Get board if specified
                     board = None
