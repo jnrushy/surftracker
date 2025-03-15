@@ -13,9 +13,9 @@ os.makedirs('templates', exist_ok=True)
 @app.route('/')
 def dashboard():
     """Serve the dashboard"""
-    # Generate fresh visualizations
-    visualize_data.create_visualizations(visualize_data.load_data_from_db())
-    return render_template('dashboard.html')
+    # Generate fresh visualizations and get statistics
+    summary_stats, yearly_stats = visualize_data.create_visualizations(visualize_data.load_data_from_db())
+    return render_template('dashboard.html', summary_stats=summary_stats, yearly_stats=yearly_stats)
 
 @app.route('/add_session', methods=['GET', 'POST'])
 def add_session():
@@ -66,4 +66,4 @@ def add_session():
     return render_template('add_session.html', boards=boards)
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(host='0.0.0.0', port=3000, debug=True) 

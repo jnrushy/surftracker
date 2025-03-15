@@ -74,12 +74,48 @@ def create_progression_charts(df):
     
     return monthly_patterns
 
+def create_summary_stats(df):
+    """Create summary statistics for the dashboard"""
+    total_sessions = len(df)
+    total_waves = df['waves_caught'].sum()
+    avg_waves_per_session = df['waves_caught'].mean()
+    total_hours = df['session_duration'].sum() / 60
+    favorite_spot = df['location'].mode().iloc[0]
+    favorite_board = df['board_name'].mode().iloc[0]
+    
+    return {
+        'total_sessions': total_sessions,
+        'total_waves': int(total_waves),
+        'avg_waves_per_session': round(avg_waves_per_session, 1),
+        'total_hours': round(total_hours, 1),
+        'favorite_spot': favorite_spot,
+        'favorite_board': favorite_board
+    }
+
+def create_yearly_stats(df):
+    """Create year-by-year statistics"""
+    yearly_stats = df.groupby('year').agg({
+        'waves_caught': ['count', 'sum', 'mean'],
+        'session_duration': 'sum',
+        'wave_height': 'mean'
+    }).round(1)
+    
+    yearly_stats.columns = ['sessions', 'total_waves', 'avg_waves_per_session', 'total_minutes', 'avg_wave_height']
+    yearly_stats['total_hours'] = (yearly_stats['total_minutes'] / 60).round(1)
+    yearly_stats = yearly_stats.drop('total_minutes', axis=1)
+    
+    return yearly_stats.reset_index().to_dict('records')
+
 def create_visualizations(df):
     """Create and display various visualizations"""
     # Add month and year columns for aggregation
     df['month'] = df['date'].dt.month
     df['year'] = df['date'].dt.year
     df['month_name'] = df['date'].dt.strftime('%B')
+    
+    # Generate summary statistics
+    summary_stats = create_summary_stats(df)
+    yearly_stats = create_yearly_stats(df)
     
     # Create progression charts
     monthly_patterns = create_progression_charts(df)
@@ -112,6 +148,8 @@ def create_visualizations(df):
     fig_duration.write_html('static/visualizations/session_duration.html')
     
     print("\nVisualization files have been created in static/visualizations/")
+    
+    return summary_stats, yearly_stats
 
 if __name__ == "__main__":
     print("Loading data from database...")
