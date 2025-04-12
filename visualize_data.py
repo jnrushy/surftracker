@@ -106,6 +106,11 @@ def create_yearly_stats(df):
     
     return yearly_stats.reset_index().to_dict('records')
 
+def get_recent_sessions(df):
+    """Get the last 10 surf sessions"""
+    recent_sessions = df.sort_values('date', ascending=False).head(10)
+    return recent_sessions[['date', 'location', 'board_name', 'wave_height', 'session_duration', 'waves_caught', 'notes']].to_dict('records')
+
 def create_visualizations(df):
     """Create and display various visualizations"""
     # Add month and year columns for aggregation
@@ -116,6 +121,7 @@ def create_visualizations(df):
     # Generate summary statistics
     summary_stats = create_summary_stats(df)
     yearly_stats = create_yearly_stats(df)
+    recent_sessions = get_recent_sessions(df)
     
     # Create progression charts
     monthly_patterns = create_progression_charts(df)
@@ -149,7 +155,7 @@ def create_visualizations(df):
     
     print("\nVisualization files have been created in static/visualizations/")
     
-    return summary_stats, yearly_stats
+    return summary_stats, yearly_stats, recent_sessions
 
 if __name__ == "__main__":
     print("Loading data from database...")
